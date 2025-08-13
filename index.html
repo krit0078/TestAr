@@ -6,7 +6,7 @@
   </head>
   <body>
     <a-scene
-      mindar-image="imageTargetSrc: marker/t9.mind;"
+      mindar-image="imageTargetSrc: marker/t9.mind; filterMinCF:0.001; filterBeta:0.05;"
       color-space="sRGB"
       renderer="colorManagement: true, physicallyCorrectLights"
       vr-mode-ui="enabled: false"
@@ -30,8 +30,8 @@
           src="#t9video"
           position="0 0 0"
           rotation="0 0 0"
-          width="1"
-          height="1.78"
+          width="2.5  "
+          height="4"
         ></a-video>
       </a-entity>
     </a-scene>
