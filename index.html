@@ -1,54 +1,92 @@
 <html>
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-  </head>
-  <body>
-    <a-scene
-      mindar-image="imageTargetSrc: marker/t9.mind; filterMinCF:0.001; filterBeta:0.05;"
-      color-space="sRGB"
-      renderer="colorManagement: true, physicallyCorrectLights"
-      vr-mode-ui="enabled: false"
-      device-orientation-permission-ui="enabled: false"
-    >
-      <a-assets>
-        <video
-          id="t9video"
-          src="video/t9.mp4"
-          preload="auto"
-          muted
-          playsinline
-          loop
-        ></video>
-      </a-assets>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+</head>
+<body>
+  <a-scene
+    mindar-image="imageTargetSrc: marker/targets_All.mind; filterMinCF:0.001; filterBeta:0.05;"
+    color-space="sRGB"
+    renderer="colorManagement: true, physicallyCorrectLights"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false"
+  >
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+    <!-- 20 markers (empty at start) -->
+    <a-entity id="marker0" mindar-image-target="targetIndex: 0"></a-entity>
+    <a-entity id="marker1" mindar-image-target="targetIndex: 1"></a-entity>
+    <a-entity id="marker2" mindar-image-target="targetIndex: 2"></a-entity>
+    <a-entity id="marker3" mindar-image-target="targetIndex: 3"></a-entity>
+    <a-entity id="marker4" mindar-image-target="targetIndex: 4"></a-entity>
+    <a-entity id="marker5" mindar-image-target="targetIndex: 5"></a-entity>
+    <a-entity id="marker6" mindar-image-target="targetIndex: 6"></a-entity>
+    <a-entity id="marker7" mindar-image-target="targetIndex: 7"></a-entity>
+    <a-entity id="marker8" mindar-image-target="targetIndex: 8"></a-entity>
+    <a-entity id="marker9" mindar-image-target="targetIndex: 9"></a-entity>
+    <a-entity id="marker10" mindar-image-target="targetIndex: 10"></a-entity>
+    <a-entity id="marker11" mindar-image-target="targetIndex: 11"></a-entity>
+    <a-entity id="marker12" mindar-image-target="targetIndex: 12"></a-entity>
+    <a-entity id="marker13" mindar-image-target="targetIndex: 13"></a-entity>
+    <a-entity id="marker14" mindar-image-target="targetIndex: 14"></a-entity>
+    <a-entity id="marker15" mindar-image-target="targetIndex: 15"></a-entity>
+    <a-entity id="marker16" mindar-image-target="targetIndex: 16"></a-entity>
+    <a-entity id="marker17" mindar-image-target="targetIndex: 17"></a-entity>
+    <a-entity id="marker18" mindar-image-target="targetIndex: 18"></a-entity>
+    <a-entity id="marker19" mindar-image-target="targetIndex: 19"></a-entity>
+  </a-scene>
 
-      <a-entity id="marker" mindar-image-target="targetIndex: 0">
-        <a-video
-          src="#t9video"
-          position="0 0 0"
-          rotation="0 0 0"
-          width="2.5  "
-          height="4"
-        ></a-video>
-      </a-entity>
-    </a-scene>
+  <script>
+    // Paths for 20 videos (replace with your actual file names)
+    const videoPaths = [
+      "video/v1.mp4", "video/v2.mp4", "video/v3.mp4", "video/v4.mp4", "video/v5.mp4",
+      "video/v6.mp4", "video/v7.mp4", "video/v8.mp4", "video/v9.mp4", "video/v10.mp4",
+      "video/v11.mp4", "video/v12.mp4", "video/v13.mp4", "video/v14.mp4", "video/v15.mp4",
+      "video/v16.mp4", "video/v17.mp4", "video/v18.mp4", "video/v19.mp4", "video/v20.mp4"
+    ];
 
-    <script>
-      const marker = document.querySelector("#marker");
-      const video = document.querySelector("#t9video");
+    const videoElements = {}; // store created HTML video elements
+
+    for (let i = 0; i < 20; i++) {
+      const marker = document.querySelector(`#marker${i}`);
 
       marker.addEventListener("targetFound", () => {
-        video.play().catch((e) => {
-          console.log("Autoplay prevented, waiting for user tap");
+        if (!videoElements[i]) {
+          // Create HTML video element
+          const vid = document.createElement("video");
+          vid.id = `video${i}`;
+          vid.src = videoPaths[i];
+          vid.loop = true;
+          vid.muted = true; // helps autoplay
+          vid.playsInline = true;
+          vid.crossOrigin = "anonymous";
+          document.querySelector("a-scene").appendChild(vid);
+
+          // Create A-Frame video plane
+          const aVid = document.createElement("a-video");
+          aVid.setAttribute("src", `#video${i}`);
+          aVid.setAttribute("width", "2.5");
+          aVid.setAttribute("height", "4");
+          aVid.setAttribute("position", "0 0 0");
+          aVid.setAttribute("rotation", "0 0 0");
+          marker.appendChild(aVid);
+
+          videoElements[i] = vid;
+        }
+
+        // Play when found
+        videoElements[i].play().catch(err => {
+          console.log("Autoplay blocked, waiting for user tap", err);
         });
       });
 
       marker.addEventListener("targetLost", () => {
-        video.pause();
+        if (videoElements[i]) {
+          videoElements[i].pause();
+        }
       });
-    </script>
-  </body>
+    }
+  </script>
+</body>
 </html>
