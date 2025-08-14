@@ -1,92 +1,98 @@
 <html>
-<head>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-</head>
-<body>
-  <a-scene
-    mindar-image="imageTargetSrc: marker/targets_All.mind; filterMinCF:0.001; filterBeta:0.05;"
-    color-space="sRGB"
-    renderer="colorManagement: true, physicallyCorrectLights"
-    vr-mode-ui="enabled: false"
-    device-orientation-permission-ui="enabled: false"
-  >
-    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    <style>
+      body { margin: 0; overflow: hidden; }
+      #loading {
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: black; color: white;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.5em; z-index: 9999;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="loading">Loading AR...</div>
 
-    <!-- 20 markers (empty at start) -->
-    <a-entity id="marker0" mindar-image-target="targetIndex: 0"></a-entity>
-    <a-entity id="marker1" mindar-image-target="targetIndex: 1"></a-entity>
-    <a-entity id="marker2" mindar-image-target="targetIndex: 2"></a-entity>
-    <a-entity id="marker3" mindar-image-target="targetIndex: 3"></a-entity>
-    <a-entity id="marker4" mindar-image-target="targetIndex: 4"></a-entity>
-    <a-entity id="marker5" mindar-image-target="targetIndex: 5"></a-entity>
-    <a-entity id="marker6" mindar-image-target="targetIndex: 6"></a-entity>
-    <a-entity id="marker7" mindar-image-target="targetIndex: 7"></a-entity>
-    <a-entity id="marker8" mindar-image-target="targetIndex: 8"></a-entity>
-    <a-entity id="marker9" mindar-image-target="targetIndex: 9"></a-entity>
-    <a-entity id="marker10" mindar-image-target="targetIndex: 10"></a-entity>
-    <a-entity id="marker11" mindar-image-target="targetIndex: 11"></a-entity>
-    <a-entity id="marker12" mindar-image-target="targetIndex: 12"></a-entity>
-    <a-entity id="marker13" mindar-image-target="targetIndex: 13"></a-entity>
-    <a-entity id="marker14" mindar-image-target="targetIndex: 14"></a-entity>
-    <a-entity id="marker15" mindar-image-target="targetIndex: 15"></a-entity>
-    <a-entity id="marker16" mindar-image-target="targetIndex: 16"></a-entity>
-    <a-entity id="marker17" mindar-image-target="targetIndex: 17"></a-entity>
-    <a-entity id="marker18" mindar-image-target="targetIndex: 18"></a-entity>
-    <a-entity id="marker19" mindar-image-target="targetIndex: 19"></a-entity>
-  </a-scene>
+    <a-scene
+      mindar-image="imageTargetSrc: marker/targets_All.mind; filterMinCF:0.001; filterBeta:0.05;"
+      color-space="sRGB"
+      renderer="colorManagement: true, physicallyCorrectLights"
+      vr-mode-ui="enabled: false"
+      device-orientation-permission-ui="enabled: false"
+      embedded
+    >
+      <a-assets>
+        <!-- Only register videos here, let browser stream them later -->
+        <script>
+          const assets = document.currentScript.parentElement;
+          for (let i = 0; i < 20; i++) {
+            const vid = document.createElement("video");
+            vid.id = "video" + i;
+            vid.src = "video/v" + i + ".mp4";
+            vid.setAttribute("playsinline", "");
+            vid.setAttribute("webkit-playsinline", "");
+            vid.setAttribute("muted", "");
+            vid.setAttribute("preload", "metadata"); // faster load
+            assets.appendChild(vid);
+          }
+        </script>
+      </a-assets>
 
-  <script>
-    // Paths for 20 videos (replace with your actual file names)
-    const videoPaths = [
-      "video/v1.mp4", "video/v2.mp4", "video/v3.mp4", "video/v4.mp4", "video/v5.mp4",
-      "video/v6.mp4", "video/v7.mp4", "video/v8.mp4", "video/v9.mp4", "video/v10.mp4",
-      "video/v11.mp4", "video/v12.mp4", "video/v13.mp4", "video/v14.mp4", "video/v15.mp4",
-      "video/v16.mp4", "video/v17.mp4", "video/v18.mp4", "video/v19.mp4", "video/v20.mp4"
-    ];
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-    const videoElements = {}; // store created HTML video elements
+      <!-- Generate marker + video planes -->
+      <script>
+        const scene = document.currentScript.parentElement;
+        for (let i = 0; i < 20; i++) {
+          const marker = document.createElement("a-entity");
+          marker.setAttribute("mindar-image-target", `targetIndex: ${i}`);
 
-    for (let i = 0; i < 20; i++) {
-      const marker = document.querySelector(`#marker${i}`);
+          const videoPlane = document.createElement("a-video");
+          videoPlane.setAttribute("src", `#video${i}`);
+          videoPlane.setAttribute("rotation", "0 0 0");
+          videoPlane.setAttribute("position", "0 0 0");
+          videoPlane.setAttribute("width", "2");  // narrower width for portrait
+          videoPlane.setAttribute("height", "3.5"); // taller height for portrait
+          videoPlane.setAttribute("scale", "1 1 1");
 
-      marker.addEventListener("targetFound", () => {
-        if (!videoElements[i]) {
-          // Create HTML video element
-          const vid = document.createElement("video");
-          vid.id = `video${i}`;
-          vid.src = videoPaths[i];
-          vid.loop = true;
-          vid.muted = true; // helps autoplay
-          vid.playsInline = true;
-          vid.crossOrigin = "anonymous";
-          document.querySelector("a-scene").appendChild(vid);
+          marker.appendChild(videoPlane);
+          scene.appendChild(marker);
+        }
+      </script>
+    </a-scene>
 
-          // Create A-Frame video plane
-          const aVid = document.createElement("a-video");
-          aVid.setAttribute("src", `#video${i}`);
-          aVid.setAttribute("width", "2.5");
-          aVid.setAttribute("height", "4");
-          aVid.setAttribute("position", "0 0 0");
-          aVid.setAttribute("rotation", "0 0 0");
-          marker.appendChild(aVid);
-
-          videoElements[i] = vid;
+    <script>
+      window.addEventListener("DOMContentLoaded", () => {
+        const loadingEl = document.getElementById("loading");
+        const videos = [];
+        for (let i = 0; i < 20; i++) {
+          videos.push(document.getElementById("video" + i));
         }
 
-        // Play when found
-        videoElements[i].play().catch(err => {
-          console.log("Autoplay blocked, waiting for user tap", err);
+        // Hide loading when .mind file is loaded
+        document.querySelector("a-scene").addEventListener("renderstart", () => {
+          loadingEl.style.display = "none";
+        });
+
+        // Play correct video when marker found
+        const markers = document.querySelectorAll("[mindar-image-target]");
+        markers.forEach((marker, idx) => {
+          const vid = videos[idx];
+
+          marker.addEventListener("targetFound", () => {
+            vid.play().catch(e => console.log("Autoplay blocked:", e));
+          });
+
+          marker.addEventListener("targetLost", () => {
+            vid.pause();
+            vid.currentTime = 0;
+          });
         });
       });
-
-      marker.addEventListener("targetLost", () => {
-        if (videoElements[i]) {
-          videoElements[i].pause();
-        }
-      });
-    }
-  </script>
-</body>
+    </script>
+  </body>
 </html>
