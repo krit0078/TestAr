@@ -18,7 +18,7 @@
     <div id="loading">Loading AR...</div>
 
     <a-scene
-      mindar-image="imageTargetSrc: marker/targets_07.mind; filterMinCF:0.001; filterBeta:0.05;"
+      mindar-image="imageTargetSrc: marker/targets_8.mind; filterMinCF:0.001; filterBeta:0.05;"
       color-space="sRGB"
       renderer="colorManagement: true, physicallyCorrectLights"
       vr-mode-ui="enabled: false"
@@ -55,8 +55,8 @@
           videoPlane.setAttribute("src", `#video${i}`);
           videoPlane.setAttribute("rotation", "0 0 0");
           videoPlane.setAttribute("position", "0 0 0");
-          videoPlane.setAttribute("width", "2");  // narrower width for portrait
-          videoPlane.setAttribute("height", "3.5"); // taller height for portrait
+          videoPlane.setAttribute("width", "1.5");  // narrower width for portrait
+          videoPlane.setAttribute("height", "2.5"); // taller height for portrait
           videoPlane.setAttribute("scale", "1 1 1");
 
           marker.appendChild(videoPlane);
