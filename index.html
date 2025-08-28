@@ -3,96 +3,112 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-    <style>
-      body { margin: 0; overflow: hidden; }
-      #loading {
-        position: fixed;
-        top: 0; left: 0; width: 100%; height: 100%;
-        background: black; color: white;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 1.5em; z-index: 9999;
-      }
-    </style>
   </head>
   <body>
-    <div id="loading">Loading AR...</div>
+    <a-scene 
+      mindar-image="imageTargetSrc: marker/targets_10.mind;filterMinCF:0.001; filterBeta:0.05; warmupTolerance:0; missTolerance:0" 
+      color-space="sRGB" 
+      renderer="colorManagement: true, physicallyCorrectLights" 
+      vr-mode-ui="enabled: false" 
+      device-orientation-permission-ui="enabled: false">
 
-    <a-scene
-      mindar-image="imageTargetSrc: marker/targets_9.mind; filterMinCF:0.001; filterBeta:0.05; warmupTolerance:3; missTolerance:3;"
-      color-space="sRGB"
-      renderer="colorManagement: true, physicallyCorrectLights"
-      vr-mode-ui="enabled: false"
-      device-orientation-permission-ui="enabled: false"
-      embedded
-    >
       <a-assets>
-        <!-- Only register videos here, let browser stream them later -->
-        <script>
-          const assets = document.currentScript.parentElement;
-          for (let i = 0; i < 20; i++) {
-            const vid = document.createElement("video");
-            vid.id = "video" + i;
-            vid.src = "video/v" + i + ".mp4";
-            vid.setAttribute("playsinline", "");
-            vid.setAttribute("webkit-playsinline", "");
-            vid.setAttribute("muted", "");
-            vid.setAttribute("preload", "metadata"); // faster load
-            assets.appendChild(vid);
-          }
-        </script>
+        <video id="video0" src="video/v0.mp4" preload="auto" loop crossorigin="anonymous" webkit-playsinline playsinline></video>
+        <video id="video1" src="video/v1.mp4" preload="auto" loop crossorigin="anonymous" webkit-playsinline playsinline></video>
+        <video id="video2" src="video/v2.mp4" preload="auto" loop crossorigin="anonymous" webkit-playsinline playsinline></video>
+        <video id="video3" src="video/v3.mp4" preload="auto" loop crossorigin="anonymous" webkit-playsinline playsinline></video>
+        <video id="video4" src="video/v4.mp4" preload="auto" loop crossorigin="anonymous" webkit-playsinline playsinline></video>
+        <video id="video5" src="video/v5.mp4" preload="auto" loop crossorigin="anonymous" webkit-playsinline playsinline></video>
+        <video id="video6" src="video/v6.mp4" preload="auto" loop crossorigin="anonymous" webkit-playsinline playsinline></video>
+        <video id="video7" src="video/v7.mp4" preload="auto" loop crossorigin="anonymous" webkit-playsinline playsinline></video>
+        <video id="video8" src="video/v8.mp4" preload="auto" loop crossorigin="anonymous" webkit-playsinline playsinline></video>
+        <!--<video id="video9" src="videos/video9.mp4" preload="auto" loop crossorigin="anonymous" webkit-playsinline playsinline></video>
+        <video id="video10" src="videos/video10.mp4" preload="auto" loop crossorigin="anonymous" webkit-playsinline playsinline></video>
+        <video id="video11" src="videos/video11.mp4" preload="auto" loop crossorigin="anonymous" webkit-playsinline playsinline></video>
+        <video id="video12" src="videos/video12.mp4" preload="auto" loop crossorigin="anonymous" webkit-playsinline playsinline></video>
+        <video id="video13" src="videos/video13.mp4" preload="auto" loop crossorigin="anonymous" webkit-playsinline playsinline></video>
+        <video id="video14" src="videos/video14.mp4" preload="auto" loop crossorigin="anonymous" webkit-playsinline playsinline></video>
+        <video id="video15" src="videos/video15.mp4" preload="auto" loop crossorigin="anonymous" webkit-playsinline playsinline></video>
+        <video id="video16" src="videos/video16.mp4" preload="auto" loop crossorigin="anonymous" webkit-playsinline playsinline></video>
+        <video id="video17" src="videos/video17.mp4" preload="auto" loop crossorigin="anonymous" webkit-playsinline playsinline></video>
+        <video id="video18" src="videos/video18.mp4" preload="auto" loop crossorigin="anonymous" webkit-playsinline playsinline></video>
+        <video id="video19" src="videos/video19.mp4" preload="auto" loop crossorigin="anonymous" webkit-playsinline playsinline></video>-->
       </a-assets>
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-      <!-- Generate marker + video planes -->
-      <script>
-        const scene = document.currentScript.parentElement;
-        for (let i = 0; i < 20; i++) {
-          const marker = document.createElement("a-entity");
-          marker.setAttribute("mindar-image-target", `targetIndex: ${i}`);
-
-          const videoPlane = document.createElement("a-video");
-          videoPlane.setAttribute("src", `#video${i}`);
-          videoPlane.setAttribute("rotation", "0 0 0");
-          videoPlane.setAttribute("position", "0 0 0");
-          videoPlane.setAttribute("width", "1.25");  // narrower width for portrait
-          videoPlane.setAttribute("height", "2"); // taller height for portrait
-          videoPlane.setAttribute("scale", "1 1 1");
-
-          marker.appendChild(videoPlane);
-          scene.appendChild(marker);
-        }
-      </script>
+      <a-entity mindar-image-target="targetIndex: 0">
+        <a-video src="#video0" width="1.5" height="2.6" position="0 0 0"></a-video>
+      </a-entity>
+      <a-entity mindar-image-target="targetIndex: 1">
+        <a-video src="#video1" width="1.5" height="2.6" position="0 0 0"></a-video>
+      </a-entity>
+      <a-entity mindar-image-target="targetIndex: 2">
+        <a-video src="#video2" width="1.5" height="2.6" position="0 0 0"></a-video>
+      </a-entity>
+      <a-entity mindar-image-target="targetIndex: 3">
+        <a-video src="#video3" width="1.5" height="2.6" position="0 0 0"></a-video>
+      </a-entity>
+      <a-entity mindar-image-target="targetIndex: 4">
+        <a-video src="#video4" width="1.5" height="2.6" position="0 0 0"></a-video>
+      </a-entity>
+      <a-entity mindar-image-target="targetIndex: 5">
+        <a-video src="#video5" width="1.5" height="2.6" position="0 0 0"></a-video>
+      </a-entity>
+      <a-entity mindar-image-target="targetIndex: 6">
+        <a-video src="#video6" width="1.5" height="2.6" position="0 0 0"></a-video>
+      </a-entity>
+      <a-entity mindar-image-target="targetIndex: 7">
+        <a-video src="#video7" width="1.5" height="2.6" position="0 0 0"></a-video>
+      </a-entity>
+      <a-entity mindar-image-target="targetIndex: 8">
+        <a-video src="#video8" width="1.5" height="2.6" position="0 0 0"></a-video>
+      </a-entity>
+      <!--<a-entity mindar-image-target="targetIndex: 9">
+        <a-video src="#video9" width="1.5" height="2.6" position="0 0 0"></a-video>
+      </a-entity>
+      <a-entity mindar-image-target="targetIndex: 10">
+        <a-video src="#video10" width="1.5" height="2.6" position="0 0 0"></a-video>
+      </a-entity>
+      <a-entity mindar-image-target="targetIndex: 11">
+        <a-video src="#video11" width="1.5" height="2.6" position="0 0 0"></a-video>
+      </a-entity>
+      <a-entity mindar-image-target="targetIndex: 12">
+        <a-video src="#video12" width="1.5" height="2.6" position="0 0 0"></a-video>
+      </a-entity>
+      <a-entity mindar-image-target="targetIndex: 13">
+        <a-video src="#video13" width="1.5" height="2.6" position="0 0 0"></a-video>
+      </a-entity>
+      <a-entity mindar-image-target="targetIndex: 14">
+        <a-video src="#video14" width="1.5" height="2.6" position="0 0 0"></a-video>
+      </a-entity>
+      <a-entity mindar-image-target="targetIndex: 15">
+        <a-video src="#video15" width="1.5" height="2.6" position="0 0 0"></a-video>
+      </a-entity>
+      <a-entity mindar-image-target="targetIndex: 16">
+        <a-video src="#video16" width="1.5" height="2.6" position="0 0 0"></a-video>
+      </a-entity>
+      <a-entity mindar-image-target="targetIndex: 17">
+        <a-video src="#video17" width="1.5" height="2.6" position="0 0 0"></a-video>
+      </a-entity>
+      <a-entity mindar-image-target="targetIndex: 18">
+        <a-video src="#video18" width="1.5" height="2.6" position="0 0 0"></a-video>
+      </a-entity>
+      <a-entity mindar-image-target="targetIndex: 19">
+        <a-video src="#video19" width="1.5" height="2.6" position="0 0 0"></a-video>
+      </a-entity> -->
     </a-scene>
 
     <script>
-      window.addEventListener("DOMContentLoaded", () => {
-        const loadingEl = document.getElementById("loading");
-        const videos = [];
-        for (let i = 0; i < 20; i++) {
-          videos.push(document.getElementById("video" + i));
-        }
+      // หยุดวิดีโอทั้งหมดก่อน
+      document.querySelectorAll("video").forEach(v => v.pause());
 
-        // Hide loading when .mind file is loaded
-        document.querySelector("a-scene").addEventListener("renderstart", () => {
-          loadingEl.style.display = "none";
-        });
-
-        // Play correct video when marker found
-        const markers = document.querySelectorAll("[mindar-image-target]");
-        markers.forEach((marker, idx) => {
-          const vid = videos[idx];
-
-          marker.addEventListener("targetFound", () => {
-            vid.play().catch(e => console.log("Autoplay blocked:", e));
-          });
-
-          marker.addEventListener("targetLost", () => {
-            vid.pause();
-            vid.currentTime = 0;
-          });
-        });
-      });
+      for (let i = 0; i < 20; i++) {
+        const target = document.querySelector(`[mindar-image-target="targetIndex: ${i}"]`);
+        const video = document.querySelector(`#video${i}`);
+        target.addEventListener("targetFound", () => video.play());
+        target.addEventListener("targetLost", () => video.pause());
+      }
     </script>
   </body>
 </html>
