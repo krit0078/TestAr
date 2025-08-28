@@ -32,10 +32,40 @@
   </a-scene>
 
   <script>
+  // --- Smooth Transform Component ---
+  function lerp(a, b, t) {
+    return a + (b - a) * t;
+  }
+
+  AFRAME.registerComponent("smooth-transform", {
+    schema: { factor: {default: 0.15} }, // ค่า factor ยิ่งต่ำ = ยิ่งนุ่ม
+    init: function () {
+      this.smoothPos = new THREE.Vector3();
+      this.smoothRot = new THREE.Euler();
+    },
+    tick: function () {
+      if (!this.el.object3D.visible) return;
+
+      const target = this.el.object3D;
+      // smooth position
+      this.smoothPos.x = lerp(this.smoothPos.x, target.position.x, this.data.factor);
+      this.smoothPos.y = lerp(this.smoothPos.y, target.position.y, this.data.factor);
+      this.smoothPos.z = lerp(this.smoothPos.z, target.position.z, this.data.factor);
+
+      // smooth rotation (แบบง่าย)
+      this.smoothRot.x = lerp(this.smoothRot.x, target.rotation.x, this.data.factor);
+      this.smoothRot.y = lerp(this.smoothRot.y, target.rotation.y, this.data.factor);
+      this.smoothRot.z = lerp(this.smoothRot.z, target.rotation.z, this.data.factor);
+
+      target.position.copy(this.smoothPos);
+      target.rotation.copy(this.smoothRot);
+    }
+  });
+
   document.addEventListener("DOMContentLoaded", () => {
     const scene = document.querySelector("a-scene");
     const loadingEl = document.getElementById("loading");
-    const totalMarkers = 20; // จำนวน marker / video
+    const totalMarkers = 20;
     const markers = [];
 
     for (let i = 0; i < totalMarkers; i++) {
@@ -62,10 +92,8 @@
           videoPlane.setAttribute("width", "1.5");
           videoPlane.setAttribute("height", "2.6");
 
-          // เพิ่ม smoothing animation
-          videoPlane.setAttribute("animation__pos", "property=position; dur=300; easing=easeOutQuad");
-          videoPlane.setAttribute("animation__rot", "property=rotation; dur=300; easing=easeOutQuad");
-          videoPlane.setAttribute("animation__sca", "property=scale; dur=300; easing=easeOutQuad");
+          // ใช้ smooth-transform เพื่อลดการสั่น
+          videoPlane.setAttribute("smooth-transform", "factor:0.15");
 
           marker.appendChild(videoPlane);
 
