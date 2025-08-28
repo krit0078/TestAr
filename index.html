@@ -17,7 +17,11 @@
   <div id="loading">Loading AR...</div>
 
   <a-scene
-    mindar-image="imageTargetSrc: marker/targets_10.mind;filterMinCF:0.001; filterBeta:0.05; warmupTolerance:2; missTolerance:6"
+    mindar-image="imageTargetSrc: marker/targets_10.mind;
+                  filterMinCF:0.0001;
+                  filterBeta:0.3;
+                  warmupTolerance:5;
+                  missTolerance:10"
     color-space="sRGB"
     renderer="colorManagement: true, physicallyCorrectLights"
     vr-mode-ui="enabled: false"
@@ -34,7 +38,6 @@
     const totalMarkers = 20; // จำนวน marker / video
     const markers = [];
 
-    // สร้าง marker entity ล่วงหน้า แต่ยังไม่สร้าง video plane
     for (let i = 0; i < totalMarkers; i++) {
       const marker = document.createElement("a-entity");
       marker.setAttribute("mindar-image-target", `targetIndex: ${i}`);
@@ -42,7 +45,6 @@
       markers.push(marker);
 
       marker.addEventListener("targetFound", () => {
-        // ถ้ายังไม่มี video plane ให้สร้าง
         if (!marker.querySelector("a-video")) {
           const video = document.createElement("video");
           video.id = `video${i}`;
@@ -51,8 +53,7 @@
           video.playsInline = true;
           video.setAttribute("webkit-playsinline", "");
           video.preload = "metadata";
-
-          document.body.appendChild(video); // append video element
+          document.body.appendChild(video);
 
           const videoPlane = document.createElement("a-video");
           videoPlane.setAttribute("src", `#video${i}`);
@@ -61,11 +62,15 @@
           videoPlane.setAttribute("width", "1.5");
           videoPlane.setAttribute("height", "2.6");
 
+          // เพิ่ม smoothing animation
+          videoPlane.setAttribute("animation__pos", "property=position; dur=300; easing=easeOutQuad");
+          videoPlane.setAttribute("animation__rot", "property=rotation; dur=300; easing=easeOutQuad");
+          videoPlane.setAttribute("animation__sca", "property=scale; dur=300; easing=easeOutQuad");
+
           marker.appendChild(videoPlane);
 
           video.play().catch(e => console.log("Autoplay blocked:", e));
         } else {
-          // ถ้ามีแล้วก็เล่น
           const video = document.getElementById(`video${i}`);
           video.play().catch(e => console.log("Autoplay blocked:", e));
         }
