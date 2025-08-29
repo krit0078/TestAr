@@ -38,7 +38,7 @@
   }
 
   AFRAME.registerComponent("smooth-transform", {
-    schema: { factor: {default: 0.15} }, // ค่า factor ยิ่งต่ำ = ยิ่งนุ่ม
+    schema: { factor: {default: 0.15} }, 
     init: function () {
       this.smoothPos = new THREE.Vector3();
       this.smoothRot = new THREE.Euler();
@@ -52,7 +52,7 @@
       this.smoothPos.y = lerp(this.smoothPos.y, target.position.y, this.data.factor);
       this.smoothPos.z = lerp(this.smoothPos.z, target.position.z, this.data.factor);
 
-      // smooth rotation (แบบง่าย)
+      // smooth rotation
       this.smoothRot.x = lerp(this.smoothRot.x, target.rotation.x, this.data.factor);
       this.smoothRot.y = lerp(this.smoothRot.y, target.rotation.y, this.data.factor);
       this.smoothRot.z = lerp(this.smoothRot.z, target.rotation.z, this.data.factor);
@@ -66,16 +66,16 @@
     const scene = document.querySelector("a-scene");
     const loadingEl = document.getElementById("loading");
     const totalMarkers = 20;
-    const markers = [];
 
     for (let i = 0; i < totalMarkers; i++) {
       const marker = document.createElement("a-entity");
       marker.setAttribute("mindar-image-target", `targetIndex: ${i}`);
       scene.appendChild(marker);
-      markers.push(marker);
 
       marker.addEventListener("targetFound", () => {
-        if (!marker.querySelector("a-video")) {
+        let videoPlane = marker.querySelector("a-video");
+
+        if (!videoPlane) {
           const video = document.createElement("video");
           video.id = `video${i}`;
           video.src = `video/v${i}.mp4`;
@@ -85,30 +85,52 @@
           video.preload = "metadata";
           document.body.appendChild(video);
 
-          const videoPlane = document.createElement("a-video");
+          videoPlane = document.createElement("a-video");
           videoPlane.setAttribute("src", `#video${i}`);
           videoPlane.setAttribute("rotation", "0 0 0");
           videoPlane.setAttribute("position", "0 0 0");
           videoPlane.setAttribute("width", "1.5");
           videoPlane.setAttribute("height", "2.6");
-
-          // ใช้ smooth-transform เพื่อลดการสั่น
           videoPlane.setAttribute("smooth-transform", "factor:0.15");
+          videoPlane.setAttribute("material", "opacity: 0; transparent: true");
 
           marker.appendChild(videoPlane);
-
-          video.play().catch(e => console.log("Autoplay blocked:", e));
-        } else {
-          const video = document.getElementById(`video${i}`);
-          video.play().catch(e => console.log("Autoplay blocked:", e));
         }
+
+        // fade in
+        videoPlane.setAttribute("animation__fadein", {
+          property: "material.opacity",
+          from: 0,
+          to: 1,
+          dur: 500,
+          easing: "easeOutQuad"
+        });
+
+        const video = document.getElementById(`video${i}`);
+        video.play().catch(e => console.log("Autoplay blocked:", e));
       });
 
       marker.addEventListener("targetLost", () => {
+        const videoPlane = marker.querySelector("a-video");
         const video = document.getElementById(`video${i}`);
+
+        if (videoPlane) {
+          // fade out
+          videoPlane.setAttribute("animation__fadeout", {
+            property: "material.opacity",
+            from: 1,
+            to: 0,
+            dur: 700,
+            easing: "easeInQuad"
+          });
+        }
+
         if (video) {
-          video.pause();
-          video.currentTime = 0;
+          // รอ fadeout จบแล้ว pause
+          setTimeout(() => {
+            video.pause();
+            video.currentTime = 0;
+          }, 700);
         }
       });
     }
