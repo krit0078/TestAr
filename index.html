@@ -1,0 +1,102 @@
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    #loading {
+      position: fixed; top:0; left:0; width:100%; height:100%;
+      background:black; color:white;
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.5em; z-index:9999;
+    }
+  </style>
+</head>
+<body>
+  <div id="loading">Loading AR...</div>
+
+  <a-scene
+    mindar-image="imageTargetSrc: marker/targets_a.mind;
+                  filterMinCF:0.0001;
+                  filterBeta:0.6;
+                  warmupTolerance:5;
+                  missTolerance:10"
+    color-space="sRGB"
+    renderer="colorManagement: true, physicallyCorrectLights"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false"
+    embedded
+  >
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+  </a-scene>
+
+  <script>
+  // --- Component ทำให้วิดีโอนิ่งกลางจอและหมุนเข้ากล้อง ---
+  AFRAME.registerComponent("centered-video", {
+    schema: { fixedScale: {default: 1.5} },
+    tick: function () {
+      const obj = this.el.object3D;
+      const cam = this.el.sceneEl.camera;
+      if (!cam) return;
+      obj.position.set(0, 0, -2); // ตั้งกลางหน้าจอ ลึก 2 หน่วย
+      obj.lookAt(cam.position);
+      obj.scale.set(this.data.fixedScale, this.data.fixedScale, this.data.fixedScale);
+    }
+  });
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const scene = document.querySelector("a-scene");
+    const loadingEl = document.getElementById("loading");
+    const totalMarkers = 20;
+
+    for (let i = 0; i < totalMarkers; i++) {
+      const marker = document.createElement("a-entity");
+      marker.setAttribute("mindar-image-target", `targetIndex: ${i}`);
+      scene.appendChild(marker);
+
+      marker.addEventListener("targetFound", () => {
+        let videoPlane = document.getElementById(`videoPlane${i}`);
+        if (!videoPlane) {
+          // สร้าง video element
+          const video = document.createElement("video");
+          video.id = `video${i}`;
+          video.src = `video/v${i}.mp4`;
+          video.loop = true; // เล่นวนซ้ำ
+          video.muted = false;
+          video.playsInline = true;
+          video.setAttribute("webkit-playsinline", "");
+          video.preload = "auto";
+          document.body.appendChild(video);
+
+          // สร้าง a-video
+          videoPlane = document.createElement("a-video");
+          videoPlane.id = `videoPlane${i}`;
+          videoPlane.setAttribute("src", `#video${i}`);
+          videoPlane.setAttribute("position", "0 0 -2"); // กลางจอ
+          videoPlane.setAttribute("rotation", "0 0 0");
+          videoPlane.setAttribute("width", "1.5");
+          videoPlane.setAttribute("height", "2.6");
+          videoPlane.setAttribute("centered-video", "fixedScale:1.5");
+          videoPlane.setAttribute("visible", "false");
+          scene.appendChild(videoPlane);
+        }
+
+        videoPlane.setAttribute("visible", "true");
+        const video = document.getElementById(`video${i}`);
+        video.play().catch(e => console.log("Autoplay blocked:", e));
+      });
+
+      marker.addEventListener("targetLost", () => {
+        const videoPlane = document.getElementById(`videoPlane${i}`);
+        const video = document.getElementById(`video${i}`);
+        if (videoPlane) videoPlane.setAttribute("visible", "false");
+        if (video) video.pause();
+      });
+    }
+
+    scene.addEventListener("renderstart", () => loadingEl.style.display = "none");
+  });
+  </script>
+</body>
+</html>
