@@ -1,90 +1,117 @@
-<!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Pseudo Marker AR with QR Loop</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
   <style>
-    body { margin:0; overflow:hidden; background:black; }
-    #qr-reader { position:absolute; top:10px; left:10px; width:250px; height:250px; z-index:10; border:2px solid white; background: rgba(0,0,0,0.5); }
-    video { display:none; }
+    body { margin: 0; overflow: hidden; }
+    #loading {
+      position: fixed; top:0; left:0; width:100%; height:100%;
+      background:black; color:white;
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.5em; z-index:9999;
+    }
   </style>
 </head>
 <body>
+  <div id="loading">Loading AR...</div>
 
-<div id="qr-reader"></div>
+  <a-scene
+    mindar-image="imageTargetSrc: marker/targets_a.mind;
+                  filterMinCF:0.002;
+                  filterBeta:0.2;
+                  warmupTolerance:3;
+                  missTolerance:3"
+    color-space="sRGB"
+    renderer="colorManagement: true, physicallyCorrectLights"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false"
+    embedded
+  >
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+  </a-scene>
 
-<a-scene embedded vr-mode-ui="false">
-  <a-camera position="0 0 0"></a-camera>
-  <a-entity id="ar-content" position="0 0 -2"></a-entity>
-</a-scene>
+  <script>
+  // --- Smooth Transform Component (Low-Jitter Version) ---
+  AFRAME.registerComponent("smooth-transform", {
+    schema: { factor: {default: 0.08} }, // ลด factor → นิ่งสุด
+    init: function () {
+      this.smoothPos = new THREE.Vector3();
+      this.smoothQuat = new THREE.Quaternion();
+    },
+    tick: function () {
+      if (!this.el.object3D.visible) return;
+      const target = this.el.object3D;
 
-<video id="arVideo" playsinline muted loop></video>
+      // อัปเดตเฉพาะเมื่อเปลี่ยนตำแหน่งจริง
+      if (target.position.distanceTo(this.smoothPos) > 0.001) {
+        this.smoothPos.lerp(target.position, this.data.factor);
+        target.position.copy(this.smoothPos);
+      }
 
-<script>
-const arContent = document.getElementById('ar-content');
-const arVideo = document.getElementById('arVideo');
-let html5QrCode;
-let activeVideo = null;
-let lastDetected = 0;
-let currentQR = null;
-
-// ฟังก์ชันแสดงวิดีโอ
-function showVideo(decodedText){
-  if (currentQR !== decodedText) {
-    currentQR = decodedText;
-    arVideo.src = `video/${decodedText}.mp4`;
-    arVideo.load();
-    arVideo.muted = true;
-    arVideo.style.display = 'block';
-    arVideo.play().catch(console.error);
-
-    arContent.innerHTML = `<a-video src="#arVideo" width="1.5" height="2.6" autoplay="true"
-      animation__fadein="property: components.material.material.opacity; from:0; to:1; dur:500; startEvents: fadein">
-    </a-video>`;
-    arContent.firstElementChild.emit('fadein');
-    activeVideo = arVideo;
-  }
-}
-
-// ฟังก์ชันซ่อนวิดีโอ
-function hideVideo(){
-  if(activeVideo){
-    const vid = arContent.firstElementChild;
-    if(vid){
-      vid.setAttribute('animation__fadeout','property: components.material.material.opacity; from:1; to:0; dur:800; startEvents: fadeout');
-      vid.emit('fadeout');
-      setTimeout(()=>{
-        arContent.innerHTML="";
-        arVideo.pause();
-        arVideo.style.display='none';
-        activeVideo = null;
-        currentQR = null;
-      },800);
+      // Quaternion lerp เพื่อลด jitter rotation
+      this.smoothQuat.slerp(target.quaternion, this.data.factor);
+      target.quaternion.copy(this.smoothQuat);
     }
-  }
-}
+  });
 
-// เริ่มสแกน QR
-html5QrCode = new Html5Qrcode("qr-reader");
-html5QrCode.start(
-  { facingMode:"environment" },
-  { fps:10, qrbox:250 },
-  decodedText => {
-    lastDetected = Date.now();
-    showVideo(decodedText);
-  }
-);
+  document.addEventListener("DOMContentLoaded", () => {
+    const scene = document.querySelector("a-scene");
+    const loadingEl = document.getElementById("loading");
+    const totalMarkers = 20;
 
-// ตรวจทุก 500ms ว่า marker หายหรือยัง
-setInterval(()=>{
-  if(activeVideo && Date.now() - lastDetected > 1000){
-    // ถ้าเกิน 1 วิแล้วไม่ detect → ถือว่า marker lost
-    hideVideo();
-  }
-},500);
-</script>
+    for (let i = 0; i < totalMarkers; i++) {
+      const marker = document.createElement("a-entity");
+      marker.setAttribute("mindar-image-target", `targetIndex: ${i}`);
+      scene.appendChild(marker);
 
+      marker.addEventListener("targetFound", () => {
+        let videoPlane = marker.querySelector("a-video");
+
+        // Lazy load: สร้างวิดีโอเฉพาะตอนเจอ marker
+        if (!videoPlane) {
+          const video = document.createElement("video");
+          video.id = `video${i}`;
+          video.src = `video/v${i}.mp4`;
+          video.muted = false;
+          video.playsInline = true;
+          video.setAttribute("webkit-playsinline", "");
+          video.preload = "none"; // Lazy load
+          document.body.appendChild(video);
+
+          videoPlane = document.createElement("a-video");
+          videoPlane.setAttribute("src", `#video${i}`);
+          videoPlane.setAttribute("rotation", "0 0 0");
+          videoPlane.setAttribute("position", "0 0 0");
+          videoPlane.setAttribute("width", "1.5");
+          videoPlane.setAttribute("height", "2.6");
+          videoPlane.setAttribute("smooth-transform", "factor:0.08");
+          videoPlane.setAttribute("visible", "false");
+          marker.appendChild(videoPlane);
+        }
+
+        videoPlane.setAttribute("visible", "true");
+        const video = document.getElementById(`video${i}`);
+        video.play().catch(e => console.log("Autoplay blocked:", e));
+      });
+
+      marker.addEventListener("targetLost", () => {
+        const videoPlane = marker.querySelector("a-video");
+        const video = document.getElementById(`video${i}`);
+
+        if (videoPlane) videoPlane.setAttribute("visible", "false");
+        if (video) {
+          video.pause();
+          video.currentTime = 0;
+          video.remove(); // ลบวิดีโอเพื่อลดโหลด
+        }
+      });
+    }
+
+    scene.addEventListener("renderstart", () => {
+      loadingEl.style.display = "none";
+    });
+  });
+  </script>
 </body>
 </html>
