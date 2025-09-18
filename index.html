@@ -15,7 +15,7 @@
     #reader { width: 300px; margin: 20px auto; }
     #ar-scene { display: none; width: 100%; height: 100vh; }
     #title { text-align: center; color: white; margin-top: 1rem; }
-    video { display: none; } /* ซ่อน element video ป้องกันการซ้อนบนจอ */
+    video { display: none; } /* video element ซ่อน */
   </style>
 </head>
 <body>
@@ -28,6 +28,9 @@
     <a-entity id="ar-content" position="0 0 -2"></a-entity>
   </a-scene>
 
+  <!-- video preload (จะเปลี่ยน src ภายหลัง) -->
+  <video id="qrVideo" crossorigin="anonymous" playsinline></video>
+
   <script>
     const html5QrCode = new Html5Qrcode("reader");
 
@@ -36,7 +39,6 @@
       showAR(decodedText);
     }
 
-    // เริ่มสแกน
     html5QrCode.start(
       { facingMode: "environment" },
       { fps: 10, qrbox: 250 },
@@ -53,29 +55,24 @@
       arScene.style.display = "block";
 
       const arContent = document.getElementById("ar-content");
+      const videoEl = document.getElementById("qrVideo");
 
-      // สร้าง <video> element ใหม่
-      const videoPath = `video/${qrText}.mp4`; // โหลดไฟล์จากโฟลเดอร์ video
-      const videoEl = document.createElement("video");
-      videoEl.setAttribute("id", "dynamicVideo");
-      videoEl.setAttribute("src", videoPath);
-      videoEl.setAttribute("playsinline", "true");
-      videoEl.setAttribute("crossorigin", "anonymous");
-      videoEl.style.display = "none";
-      document.body.appendChild(videoEl);
+      // กำหนดไฟล์วิดีโอจากโฟลเดอร์ video/
+      const videoPath = `video/${qrText}.mp4`;
 
-      videoEl.play()
-        .then(() => {
-          arContent.innerHTML = `
-            <a-video 
-              src="#dynamicVideo" 
-              width="1.6" height="0.9"
-              autoplay="true">
-            </a-video>`;
-        })
-        .catch(() => {
-          arContent.innerHTML = `<a-text value="ไม่พบไฟล์วิดีโอ: ${qrText}" align="center" color="red"></a-text>`;
-        });
+      // โหลดวิดีโอ
+      videoEl.src = videoPath;
+      videoEl.load();
+      videoEl.play().catch(err => console.error("Autoplay failed:", err));
+      videoEl.muted = true;
+      videoEl.playsInline = true;
+      // แสดงใน AR
+      arContent.innerHTML = `
+        <a-video 
+          src="#qrVideo" 
+          width="1.5" height="2.6" 
+          autoplay="true">
+        </a-video>`;
     }
   </script>
 </body>
