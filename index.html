@@ -1,177 +1,90 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>QR to AR Video (PC & Mobile)</title>
-
-  <!-- QR Code Scanner -->
-  <script src="https://unpkg.com/html5-qrcode"></script>
-
-  <!-- A-Frame -->
+  <meta charset="UTF-8">
+  <title>Pseudo Marker AR with QR Loop</title>
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-
+  <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
-    body { margin: 0; overflow: hidden; background: black; font-family: sans-serif; }
-    #reader, #file-input { width: 300px; margin: 10px auto; text-align: center; }
-    #ar-scene { display: none; width: 100%; height: 100vh; }
-    #title { text-align: center; color: white; margin: 1rem; }
-    video { display: none; }
-    #file-input { display: none; }
+    body { margin:0; overflow:hidden; background:black; }
+    #qr-reader { position:absolute; top:10px; left:10px; width:250px; height:250px; z-index:10; border:2px solid white; background: rgba(0,0,0,0.5); }
+    video { display:none; }
   </style>
 </head>
 <body>
-  <h2 id="title">🔍 Scan QR Code</h2>
-  <div id="reader"></div>
-  <div id="file-input">
-    <input type="file" id="qr-file" accept="image/*">
-    <p style="color:white;">Or upload QR image</p>
-  </div>
 
-  <!-- AR Scene -->
-  <a-scene id="ar-scene" vr-mode-ui="false">
-    <a-camera position="0 0 0"></a-camera>
-    <a-entity id="ar-content" position="0 0 -2"></a-entity>
-  </a-scene>
+<div id="qr-reader"></div>
 
-  <!-- Video preload -->
-  <video id="qrVideo" crossorigin="anonymous" playsinline muted></video>
+<a-scene embedded vr-mode-ui="false">
+  <a-camera position="0 0 0"></a-camera>
+  <a-entity id="ar-content" position="0 0 -2"></a-entity>
+</a-scene>
 
-  <script>
-    const videoEl = document.getElementById("qrVideo");
-    const arContent = document.getElementById("ar-content");
-    const readerDiv = document.getElementById("reader");
-    const fileInputDiv = document.getElementById("file-input");
-    const qrFileInput = document.getElementById("qr-file");
-    const titleEl = document.getElementById("title");
+<video id="arVideo" playsinline muted loop></video>
 
-    let html5QrCode;
-    let fadeOutTimer;
-    const fadeDelay = 8000; // 8 วินาที fade-out
+<script>
+const arContent = document.getElementById('ar-content');
+const arVideo = document.getElementById('arVideo');
+let html5QrCode;
+let activeVideo = null;
+let lastDetected = 0;
+let currentQR = null;
 
-    // ตรวจสอบกล้อง
-    navigator.mediaDevices.enumerateDevices()
-      .then(devices => {
-        const hasCamera = devices.some(d => d.kind === "videoinput");
-        if (hasCamera) {
-          startCameraScanner();
-        } else {
-          // ไม่มี webcam → ใช้ไฟล์ QR
-          readerDiv.style.display = "none";
-          fileInputDiv.style.display = "block";
-        }
-      });
+// ฟังก์ชันแสดงวิดีโอ
+function showVideo(decodedText){
+  if (currentQR !== decodedText) {
+    currentQR = decodedText;
+    arVideo.src = `video/${decodedText}.mp4`;
+    arVideo.load();
+    arVideo.muted = true;
+    arVideo.style.display = 'block';
+    arVideo.play().catch(console.error);
 
-    // ถ้ามีกล้อง
-    function startCameraScanner() {
-      html5QrCode = new Html5Qrcode("reader");
-      html5QrCode.start(
-        { facingMode: "user" }, 
-        { fps: 10, qrbox: 250 },
-        onScanSuccess
-      ).catch(err => {
-        console.error("Camera start failed:", err);
-        readerDiv.style.display = "none";
-        fileInputDiv.style.display = "block";
-      });
+    arContent.innerHTML = `<a-video src="#arVideo" width="1.5" height="2.6" autoplay="true"
+      animation__fadein="property: components.material.material.opacity; from:0; to:1; dur:500; startEvents: fadein">
+    </a-video>`;
+    arContent.firstElementChild.emit('fadein');
+    activeVideo = arVideo;
+  }
+}
+
+// ฟังก์ชันซ่อนวิดีโอ
+function hideVideo(){
+  if(activeVideo){
+    const vid = arContent.firstElementChild;
+    if(vid){
+      vid.setAttribute('animation__fadeout','property: components.material.material.opacity; from:1; to:0; dur:800; startEvents: fadeout');
+      vid.emit('fadeout');
+      setTimeout(()=>{
+        arContent.innerHTML="";
+        arVideo.pause();
+        arVideo.style.display='none';
+        activeVideo = null;
+        currentQR = null;
+      },800);
     }
+  }
+}
 
-    // ถ้าอัปโหลดไฟล์ QR
-    qrFileInput.addEventListener("change", (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
+// เริ่มสแกน QR
+html5QrCode = new Html5Qrcode("qr-reader");
+html5QrCode.start(
+  { facingMode:"environment" },
+  { fps:10, qrbox:250 },
+  decodedText => {
+    lastDetected = Date.now();
+    showVideo(decodedText);
+  }
+);
 
-      Html5Qrcode.scanFile(file, true)
-        .then(decodedText => {
-          console.log("QR Scanned (file):", decodedText);
-          showAR(decodedText);
-        })
-        .catch(err => {
-          alert("Cannot read QR code from this image.");
-        });
-    });
+// ตรวจทุก 500ms ว่า marker หายหรือยัง
+setInterval(()=>{
+  if(activeVideo && Date.now() - lastDetected > 1000){
+    // ถ้าเกิน 1 วิแล้วไม่ detect → ถือว่า marker lost
+    hideVideo();
+  }
+},500);
+</script>
 
-    // Callback เมื่อสแกน QR จากกล้อง
-    function onScanSuccess(decodedText) {
-      console.log("QR Scanned:", decodedText);
-      showAR(decodedText);
-    }
-
-    // แสดง AR Video
-    function showAR(qrText) {
-      // ซ่อน scanner / file input
-      readerDiv.style.display = "none";
-      fileInputDiv.style.display = "none";
-      titleEl.innerText = "📱 AR Video";
-
-      if (html5QrCode) html5QrCode.stop().catch(console.error);
-
-      const videoPath = `video/${qrText}.mp4`;
-      videoEl.src = videoPath;
-      videoEl.load();
-      videoEl.muted = true;
-      videoEl.playsInline = true;
-
-      videoEl.oncanplay = () => {
-        videoEl.play().catch(console.error);
-
-        // สร้าง AR video
-        arContent.innerHTML = `
-          <a-video 
-            id="arVideo"
-            src="#qrVideo" 
-            width="1.5" height="2.6" 
-            autoplay="true"
-            animation__fadein="property: components.material.material.opacity; from:0; to:1; dur:500; startEvents: fadein">
-          </a-video>`;
-
-        setTimeout(() => {
-          arContent.firstElementChild.emit('fadein');
-        }, 100);
-
-        resetFadeOutTimer();
-      };
-
-      videoEl.onerror = () => {
-        arContent.innerHTML = `<a-text value="Video not found" color="red" align="center"></a-text>`;
-      };
-
-      // แสดง AR scene
-      document.getElementById("ar-scene").style.display = "block";
-    }
-
-    // Fade-out อัตโนมัติ
-    function fadeOutVideo() {
-      const arVideo = document.getElementById("arVideo");
-      if (!arVideo) return;
-
-      arVideo.setAttribute("animation__fadeout", "property: components.material.material.opacity; from:1; to:0; dur:800; startEvents: fadeout");
-      arVideo.emit("fadeout");
-
-      setTimeout(() => {
-        arContent.innerHTML = "";
-        titleEl.innerText = "🔍 Scan QR Code";
-        document.getElementById("ar-scene").style.display = "none";
-
-        // เริ่ม scanner / file input ใหม่
-        navigator.mediaDevices.enumerateDevices()
-          .then(devices => {
-            const hasCamera = devices.some(d => d.kind === "videoinput");
-            if (hasCamera) {
-              readerDiv.style.display = "block";
-              startCameraScanner();
-            } else {
-              fileInputDiv.style.display = "block";
-            }
-          });
-      }, 800);
-    }
-
-    // รีเซ็ต timer fade-out
-    function resetFadeOutTimer() {
-      if (fadeOutTimer) clearTimeout(fadeOutTimer);
-      fadeOutTimer = setTimeout(() => {
-        fadeOutVideo();
-      }, fadeDelay);
-    }
-  </script>
-</body
+</body>
+</html>
