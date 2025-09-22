@@ -17,7 +17,11 @@
   <div id="loading">Loading AR...</div>
 
   <a-scene
-    mindar-image="imageTargetSrc: marker/targets_10.mind;filterMinCF:0.001; filterBeta:0.05; warmupTolerance:0; missTolerance:0"
+    mindar-image="imageTargetSrc: marker/targets_a.mind;
+                  filterMinCF: 0.0001;
+                  filterBeta: 0.001;
+                  warmupTolerance: 12;
+                  missTolerance: 10"
     color-space="sRGB"
     renderer="colorManagement: true, physicallyCorrectLights"
     vr-mode-ui="enabled: false"
@@ -28,61 +32,108 @@
   </a-scene>
 
   <script>
+  // ล็อกตำแหน่งหลังแสกน
+  AFRAME.registerComponent("fixed-position", {
+    init: function () {
+      this.locked = false;
+      this.lastPos = new THREE.Vector3();
+    },
+    tick: function () {
+      const obj = this.el.object3D;
+      if (!obj.visible) return;
+
+      if (!this.locked) {
+        this.lastPos.copy(obj.position);
+        this.locked = true;
+      }
+      obj.position.copy(this.lastPos);
+    }
+  });
+
+  // หมุนเข้าหากล้องเสมอ
+  AFRAME.registerComponent("look-at-camera", {
+    tick: function () {
+      const obj = this.el.object3D;
+      const cam = this.el.sceneEl.camera;
+      if (obj.visible && cam) {
+        const targetQuat = new THREE.Quaternion().setFromRotationMatrix(
+          new THREE.Matrix4().lookAt(obj.position, cam.position, obj.up)
+        );
+        obj.quaternion.slerp(targetQuat, 0.2);
+      }
+    }
+  });
+
+  // fade-in นุ่มนวล
+  AFRAME.registerComponent("fade-in", {
+    init: function () {
+      this.el.setAttribute("material", "opacity: 0");
+      this.opacity = 0;
+    },
+    tick: function () {
+      if (!this.el.object3D.visible) return;
+      if (this.opacity < 1) {
+        this.opacity += 0.05;
+        this.el.setAttribute("material", "opacity", this.opacity);
+      }
+    }
+  });
+
   document.addEventListener("DOMContentLoaded", () => {
     const scene = document.querySelector("a-scene");
     const loadingEl = document.getElementById("loading");
-    const totalMarkers = 20; // จำนวน marker / video
-    const markers = [];
+    const totalMarkers = 20;
 
-    // สร้าง marker entity ล่วงหน้า แต่ยังไม่สร้าง video plane
     for (let i = 0; i < totalMarkers; i++) {
       const marker = document.createElement("a-entity");
       marker.setAttribute("mindar-image-target", `targetIndex: ${i}`);
       scene.appendChild(marker);
-      markers.push(marker);
 
-      marker.addEventListener("targetFound", () => {
-        // ถ้ายังไม่มี video plane ให้สร้าง
-        if (!marker.querySelector("a-video")) {
+      marker.addEventListener("targetFound", (e) => {
+        if (e.detail && e.detail.cf < 0.6) return;
+
+        let videoPlane = marker.querySelector("a-video");
+        if (!videoPlane) {
           const video = document.createElement("video");
           video.id = `video${i}`;
           video.src = `video/v${i}.mp4`;
+          video.loop = true;
           video.muted = false;
           video.playsInline = true;
           video.setAttribute("webkit-playsinline", "");
-          video.preload = "metadata";
+          video.preload = "auto";
+          document.body.appendChild(video);
 
-          document.body.appendChild(video); // append video element
-
-          const videoPlane = document.createElement("a-video");
+          videoPlane = document.createElement("a-video");
           videoPlane.setAttribute("src", `#video${i}`);
-          videoPlane.setAttribute("rotation", "0 0 0");
           videoPlane.setAttribute("position", "0 0 0");
-          videoPlane.setAttribute("width", "1.5");
-          videoPlane.setAttribute("height", "2.6");
-
+          videoPlane.setAttribute("rotation", "0 0 0");
+          videoPlane.setAttribute("width", "1.0");
+          videoPlane.setAttribute("height", "1.8");
+          videoPlane.setAttribute("fixed-position", "");
+          videoPlane.setAttribute("look-at-camera", "");
+          videoPlane.setAttribute("fade-in", "");
+          videoPlane.setAttribute("visible", "false");
           marker.appendChild(videoPlane);
-
-          video.play().catch(e => console.log("Autoplay blocked:", e));
-        } else {
-          // ถ้ามีแล้วก็เล่น
-          const video = document.getElementById(`video${i}`);
-          video.play().catch(e => console.log("Autoplay blocked:", e));
         }
+
+        videoPlane.setAttribute("visible", "true");
+        const video = document.getElementById(`video${i}`);
+        video.play().catch(e => console.log("Autoplay blocked:", e));
       });
 
       marker.addEventListener("targetLost", () => {
+        const videoPlane = marker.querySelector("a-video");
         const video = document.getElementById(`video${i}`);
-        if (video) {
-          video.pause();
-          video.currentTime = 0;
+        if (videoPlane) {
+          videoPlane.setAttribute("visible", "false");
+          videoPlane.removeAttribute("fixed-position");
         }
+        if (video) video.pause();
       });
     }
 
-    scene.addEventListener("renderstart", () => {
-      loadingEl.style.display = "none";
-    });
+    scene.addEventListener("renderstart", () => loadingEl.style.display = "none");
   });
   </script>
 </body>
